@@ -1,0 +1,28 @@
+name: Sync Labels
+run-name: Sync labels workflow initiated by ${{ github.actor }}
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/labels.json
+  workflow_dispatch:
+
+jobs:
+  labels:
+    name: Sync Labels
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 16
+      - name: Install label sync courtesy of the Financial Times
+        run: |
+          npm install -g github-label-sync@2.2.0
+      - name: Sync Labels
+        run: |
+          github-label-sync --access-token ${{ secrets.GITHUB_TOKEN }} --labels .github/labels.json ${{ github.repository }}
