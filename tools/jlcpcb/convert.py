@@ -5,16 +5,22 @@ Pipeline, given the two Fusion exports:
 * Drop every part whose POPULATE cell is "0" from both files.
 * In the BOM, rename the "Parts" column to "Designator" and guarantee an
   LCSC_PART_NUMBER column exists.
-* Copy each part's LCSC_PART_NUMBER into the pick-and-place file, matched on
-  reference designator, so the placement file carries the JLCPCB part numbers.
+* Rename the pick-and-place columns to JLCPCB's names (Designator / Mid X /
+  Mid Y / Rotation), add a Layer column, and copy each part's LCSC_PART_NUMBER
+  into it, matched on reference designator.
 
 The BOM is the source of truth: it decides which designators are populated and
 which LCSC code each designator maps to. The pick-and-place file is filtered and
 annotated from that information.
+
+Board side comes from the pick-and-place filename: ``*_front.csv`` -> Top,
+``*_back.csv`` -> Bottom. Fusion exports one placement file per side, and the
+side isn't in the file's contents, so the filename is the only signal.
 """
 
 import argparse
 import os
+import sys
 from dataclasses import dataclass, field
 
 from .columns import Columns
@@ -73,18 +79,18 @@ class Converter:
     def __init__(self, columns=None):
         self.columns = columns or Columns()
 
-    def convert(self, bom, cpl):
+    def convert(self, bom, cpl, layer="Top"):
         index = BomIndex.from_rows(bom[1], self.columns)
-        return self._convert_bom(bom), self._convert_cpl(cpl, index)
+        return self._convert_bom(bom), self._convert_cpl(cpl, index, layer)
 
     def _convert_bom(self, bom):
         fieldnames, rows = bom
         kept = [self._transform_bom_row(row) for row in rows if self._is_populated(row)]
         return self._bom_fields(fieldnames), kept
 
-    def _convert_cpl(self, cpl, index):
+    def _convert_cpl(self, cpl, index, layer):
         fieldnames, rows = cpl
-        kept = [self._annotate_cpl_row(row, index) for row in rows if self._keep_cpl(row, index)]
+        kept = [self._build_cpl_row(row, index, layer) for row in rows if self._keep_cpl(row, index)]
         return self._cpl_fields(fieldnames), kept
 
     def _is_populated(self, row):
@@ -99,17 +105,25 @@ class Converter:
         out.setdefault(self.columns.lcsc, "")
         return out
 
-    def _annotate_cpl_row(self, row, index):
-        out = dict(row)
+    def _build_cpl_row(self, row, index, layer):
+        out = self._rename_cpl(row)
+        out[self.columns.layer] = layer
         out[self.columns.lcsc] = index.lcsc_for(self._cpl_ref(row))
         return out
+
+    def _rename_cpl(self, row):
+        renames = self.columns.cpl_renames()
+        return {renames.get(key, key): value for key, value in row.items()}
 
     def _bom_fields(self, fieldnames):
         renamed = [self._renamed(name) for name in fieldnames]
         return _with_column(renamed, self.columns.lcsc)
 
     def _cpl_fields(self, fieldnames):
-        return _with_column(list(fieldnames), self.columns.lcsc)
+        renames = self.columns.cpl_renames()
+        out = [renames.get(name, name) for name in fieldnames]
+        _with_column(out, self.columns.layer)
+        return _with_column(out, self.columns.lcsc)
 
     def _renamed(self, name):
         # "Parts" -> "Designator"; every other column keeps its name.
@@ -134,17 +148,78 @@ def output_path(source, out_dir):
     return os.path.join(directory, f"{stem}{_OUTPUT_SUFFIX}{ext or '.csv'}")
 
 
+def layer_for_filename(path):
+    """Top for ``*_front.csv``, Bottom for ``*_back.csv``; None if neither."""
+    name = os.path.basename(path).lower()
+    if name.endswith("_front.csv"):
+        return "Top"
+    if name.endswith("_back.csv"):
+        return "Bottom"
+    return None
+
+
+def resolve_layer(override, cpl_path):
+    """Use an explicit --layer override, else infer from the filename (default Top)."""
+    if override:
+        return override
+    inferred = layer_for_filename(cpl_path)
+    if inferred is None:
+        print(
+            f"Warning: '{os.path.basename(cpl_path)}' does not end in _front.csv or "
+            f"_back.csv; defaulting Layer to Top. Pass --layer to set it explicitly.",
+            file=sys.stderr,
+        )
+        return "Top"
+    return inferred
+
+
+def require_columns(fieldnames, required, source):
+    """Abort with a header-focused message if any required column is absent.
+
+    A file exported without a header row has its first data row read as the
+    header, so the expected column name is missing — that is the symptom this
+    catches, steering the user to re-export with headers.
+    """
+    missing = [name for name in required if name not in fieldnames]
+    if missing:
+        raise SystemExit(_missing_columns_message(missing, fieldnames, source))
+
+
+def _missing_columns_message(missing, fieldnames, source):
+    found = ", ".join(fieldnames) if fieldnames else "(no columns)"
+    return (
+        f"{source}: missing required column(s): {', '.join(missing)}.\n"
+        f"  Columns found: {found}\n"
+        f"  If that row looks like component data rather than column names, the file "
+        f"has no header row.\n"
+        f"  Re-export it from Fusion WITH headers (the CSV's first row must name the columns)."
+    )
+
+
 def _parse_args(argv):
     parser = argparse.ArgumentParser(description="Convert Fusion BOM and pick-and-place CSVs for JLCPCB.")
     parser.add_argument("--bom", required=True, help="Path to the Fusion BOM CSV.")
     parser.add_argument("--cpl", required=True, help="Path to the Fusion pick-and-place (CPL) CSV.")
     parser.add_argument("--out-dir", default=None, help="Directory for outputs (default: beside each input).")
+    parser.add_argument(
+        "--layer",
+        choices=["Top", "Bottom"],
+        default=None,
+        help="Board side for the placements (default: inferred from the _front/_back filename).",
+    )
     return parser.parse_args(argv)
 
 
 def main(argv=None):
     args = _parse_args(argv)
-    bom_out, cpl_out = Converter().convert(read_table(args.bom), read_table(args.cpl))
+    columns = Columns()
+    bom = read_table(args.bom)
+    cpl = read_table(args.cpl)
+    require_columns(bom[0], [columns.bom_designators], args.bom)
+    require_columns(cpl[0], [columns.cpl_designator], args.cpl)
+
+    layer = resolve_layer(args.layer, args.cpl)
+    bom_out, cpl_out = Converter(columns).convert(bom, cpl, layer)
 
     bom_path = output_path(args.bom, args.out_dir)
     cpl_path = output_path(args.cpl, args.out_dir)

@@ -26,5 +26,24 @@ class Columns:
     designator: str = "Designator"
 
     # --- Fusion pick-and-place input ---
-    # One row per placed component; the reference designator column.
-    cpl_designator: str = "Designator"
+    # One row per placed component. Fusion labels these columns; the output uses
+    # JLCPCB's expected names (Designator / Mid X / Mid Y / Rotation).
+    cpl_designator: str = "Name"
+    cpl_x: str = "X"
+    cpl_y: str = "Y"
+    cpl_rotation: str = "Angle"
+
+    # --- JLCPCB pick-and-place output names ---
+    out_mid_x: str = "Mid X"
+    out_mid_y: str = "Mid Y"
+    out_rotation: str = "Rotation"
+    layer: str = "Layer"
+
+    def cpl_renames(self):
+        """Map Fusion pick-and-place input columns to JLCPCB output names."""
+        return {
+            self.cpl_designator: self.designator,
+            self.cpl_x: self.out_mid_x,
+            self.cpl_y: self.out_mid_y,
+            self.cpl_rotation: self.out_rotation,
+        }

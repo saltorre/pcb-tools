@@ -16,10 +16,20 @@ The defaults assume these headers (override them in
 
 - **BOM:** `Parts` (designators, e.g. `C1, C2`), `POPULATE` (`0` = do-not-populate),
   `MPN`, `LCSC_PART_NUMBER`
-- **Pick-and-place:** `Designator` (one component per row)
+- **Pick-and-place:** `Name` (one component per row), `X`, `Y`, `Angle`
 
 `POPULATE` and `LCSC_PART_NUMBER` are custom library attributes — add them to your
 Fusion device attributes if they aren't there yet.
+
+**Export with headers.** Both CSVs must have a header row naming the columns. If
+the pick-and-place file is missing its header, the converter stops and tells you
+to re-export — it keys on column names, not position.
+
+**Name the placement file by side.** The converter sets the `Layer` column from
+the filename: `..._front.csv` → `Top`, `..._back.csv` → `Bottom`. Fusion exports
+one placement file per side and the side isn't in the file's contents, so the
+name is the only signal. Override with `--layer Top|Bottom` if your files are
+named differently.
 
 ## 1. Fill in LCSC part numbers (Claude skill)
 
@@ -49,10 +59,11 @@ By default each output is written next to its input as `<name>_jlcpcb.csv`; pass
 What it does:
 
 - Removes every part whose `POPULATE` is `0` from **both** files.
-- Renames the BOM's `Parts` column to `Designator` and ensures a
-  `LCSC_PART_NUMBER` column exists.
-- Copies each part's `LCSC_PART_NUMBER` into the pick-and-place file, matched on
-  reference designator.
+- BOM: renames `Parts` → `Designator`, ensures a `LCSC_PART_NUMBER` column exists,
+  and keeps the other columns (including `MPN`) untouched.
+- Pick-and-place: renames `Name`/`X`/`Y`/`Angle` → JLCPCB's
+  `Designator`/`Mid X`/`Mid Y`/`Rotation`, adds a `Layer` column (see above), and
+  fills `LCSC_PART_NUMBER` per designator from the BOM.
 
 Upload the two `_jlcpcb.csv` files to JLCPCB's assembly order page. If JLCPCB's
 column auto-detection doesn't pick up `LCSC_PART_NUMBER`, map it to "LCSC Part #"

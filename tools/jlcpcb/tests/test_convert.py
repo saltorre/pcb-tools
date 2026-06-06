@@ -1,4 +1,12 @@
-from tools.jlcpcb.convert import BomIndex, Converter, output_path
+import pytest
+
+from tools.jlcpcb.convert import (
+    BomIndex,
+    Converter,
+    layer_for_filename,
+    output_path,
+    require_columns,
+)
 from tools.jlcpcb.columns import Columns
 
 
@@ -13,12 +21,13 @@ def _bom():
 
 
 def _cpl():
-    fields = ["Designator", "Mid X", "Mid Y", "Layer", "Rotation"]
+    # Mirrors Fusion's pick-and-place export: designator column is "Name".
+    fields = ["Name", "X", "Y", "Angle", "Value", "Package"]
     rows = [
-        {"Designator": "C1", "Mid X": "1", "Mid Y": "2", "Layer": "Top", "Rotation": "0"},
-        {"Designator": "C2", "Mid X": "3", "Mid Y": "4", "Layer": "Top", "Rotation": "90"},
-        {"Designator": "R1", "Mid X": "5", "Mid Y": "6", "Layer": "Top", "Rotation": "0"},
-        {"Designator": "U1", "Mid X": "7", "Mid Y": "8", "Layer": "Bottom", "Rotation": "180"},
+        {"Name": "C1", "X": "1", "Y": "2", "Angle": "90", "Value": "100nF", "Package": "0402"},
+        {"Name": "C2", "X": "3", "Y": "4", "Angle": "0", "Value": "100nF", "Package": "0402"},
+        {"Name": "R1", "X": "5", "Y": "6", "Angle": "0", "Value": "10k", "Package": "0402"},
+        {"Name": "U1", "X": "7", "Y": "8", "Angle": "180", "Value": "MCU", "Package": "QFN"},
     ]
     return fields, rows
 
@@ -37,6 +46,13 @@ def test_bom_drops_unpopulated_parts():
     assert len(rows) == 2
 
 
+def test_cpl_renames_columns_to_jlcpcb_names():
+    (fields, _) = Converter().convert(_bom(), _cpl())[1]
+    assert "Designator" in fields and "Name" not in fields
+    assert "Mid X" in fields and "Mid Y" in fields
+    assert "Rotation" in fields and "Angle" not in fields
+
+
 def test_cpl_drops_unpopulated_designators():
     (_, rows) = Converter().convert(_bom(), _cpl())[1]
     designators = [row["Designator"] for row in rows]
@@ -52,12 +68,38 @@ def test_cpl_gets_lcsc_by_designator():
     assert by_ref["U1"] == ""  # no LCSC in BOM, left blank
 
 
+def test_cpl_adds_layer_from_argument():
+    (fields, rows) = Converter().convert(_bom(), _cpl(), "Bottom")[1]
+    assert "Layer" in fields
+    assert all(row["Layer"] == "Bottom" for row in rows)
+
+
+def test_layer_inferred_from_filename():
+    assert layer_for_filename("PnP_board_front.csv") == "Top"
+    assert layer_for_filename("PnP_board_back.csv") == "Bottom"
+    assert layer_for_filename("PnP_board.csv") is None
+
+
 def test_bom_index_tracks_dnp_and_lcsc():
     index = BomIndex.from_rows(_bom()[1], Columns())
     assert index.is_dnp("R1")
     assert not index.is_dnp("C1")
     assert index.lcsc_for("C2") == "C49678"
     assert index.lcsc_for("U1") == ""
+
+
+def test_require_columns_passes_when_present():
+    require_columns(["Designator", "Mid X"], ["Designator"], "pnp.csv")  # no raise
+
+
+def test_require_columns_errors_on_headerless_file():
+    # A headerless pick-and-place file reads its first component row as the header.
+    headerless = ["C1", "3.18", "22.86", "90.00"]
+    with pytest.raises(SystemExit) as exc:
+        require_columns(headerless, ["Designator"], "pnp.csv")
+    message = str(exc.value)
+    assert "Designator" in message
+    assert "header" in message.lower()
 
 
 def test_output_path_adds_suffix(tmp_path):
