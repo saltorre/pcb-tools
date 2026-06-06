@@ -33,11 +33,11 @@ Fusion device attributes if they aren't there yet.
 the pick-and-place file is missing its header, the converter stops and tells you
 to re-export — it keys on column names, not position.
 
-**Name the placement file by side.** The converter sets the `Layer` column from
-the filename: `..._front.csv` → `Top`, `..._back.csv` → `Bottom`. Fusion exports
-one placement file per side and the side isn't in the file's contents, so the
-name is the only signal. Override with `--layer Top|Bottom` if your files are
-named differently.
+**Two board sides.** Fusion exports one placement file per side, already named
+`..._front.csv` and `..._back.csv`. Pass either one to `--cpl`; the tool finds
+the matching opposite-side file beside it automatically and merges both into a
+single placement file, setting the `Layer` column from each filename (`front` →
+`Top`, `back` → `Bottom`). A single-sided board just has the one file.
 
 ## 1. Fill in LCSC part numbers (Claude skill)
 
@@ -57,12 +57,17 @@ Run this **before** the conversion step so the placement file inherits the codes
 
 ```bash
 python -m tools.jlcpcb.convert \
-  --bom boards/myboard_bom.csv \
-  --cpl boards/myboard_pnp_front.csv
+  --bom boards/PCB1001M1_LAYOUT.csv \
+  --cpl boards/PnP_PCB1001M1_Layout_front.csv
 ```
 
-By default each output is written next to its input as `<name>_jlcpcb.csv`; pass
-`--out-dir DIR` to collect them elsewhere.
+This writes two files beside the inputs (use `--out-dir DIR` to collect them
+elsewhere):
+
+- `bom_PCB1001M1_LAYOUT_jlcpcb.csv` — the BOM, with a `bom_` prefix so it's
+  obviously the BOM at upload time.
+- `PnP_PCB1001M1_Layout_jlcpcb.csv` — front and back placements merged (the
+  `_front`/`_back` side suffix dropped).
 
 What it does:
 

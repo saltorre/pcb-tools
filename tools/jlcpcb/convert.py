@@ -10,12 +10,17 @@ Pipeline, given the two Fusion exports:
   into it, matched on reference designator.
 
 The BOM is the source of truth: it decides which designators are populated and
-which LCSC code each designator maps to. The pick-and-place file is filtered and
-annotated from that information.
+which LCSC code each designator maps to. The pick-and-place files are filtered
+and annotated from that information.
 
-Board side comes from the pick-and-place filename: ``*_front.csv`` -> Top,
-``*_back.csv`` -> Bottom. Fusion exports one placement file per side, and the
-side isn't in the file's contents, so the filename is the only signal.
+Fusion exports one placement file per board side, named ``*_front.csv`` and
+``*_back.csv``; the side isn't in the file's contents, so the filename is the
+only signal (front -> Top, back -> Bottom). Pass either one and the matching
+opposite-side file beside it is picked up automatically; the two are merged into
+a single JLCPCB placement file with a Layer column distinguishing them.
+
+Outputs are named for JLCPCB upload: ``bom_<name>_jlcpcb.csv`` and the combined
+``PnP_<name>_jlcpcb.csv`` (the ``_front``/``_back`` side suffix dropped).
 """
 
 import argparse
@@ -79,14 +84,27 @@ class Converter:
     def __init__(self, columns=None):
         self.columns = columns or Columns()
 
-    def convert(self, bom, cpl, layer="Top"):
+    def convert(self, bom, cpls):
+        """Convert one BOM and one or more (cpl_table, layer) pairs.
+
+        Every placement file is filtered/annotated against the same BOM and the
+        results are concatenated into a single combined placement table.
+        """
         index = BomIndex.from_rows(bom[1], self.columns)
-        return self._convert_bom(bom), self._convert_cpl(cpl, index, layer)
+        return self._convert_bom(bom), self._convert_cpls(cpls, index)
 
     def _convert_bom(self, bom):
         fieldnames, rows = bom
         kept = [self._transform_bom_row(row) for row in rows if self._is_populated(row)]
         return self._bom_fields(fieldnames), kept
+
+    def _convert_cpls(self, cpls, index):
+        fields, rows = [], []
+        for cpl, layer in cpls:
+            part_fields, part_rows = self._convert_cpl(cpl, index, layer)
+            fields = _merge_fields(fields, part_fields)
+            rows += part_rows
+        return fields, rows
 
     def _convert_cpl(self, cpl, index, layer):
         fieldnames, rows = cpl
@@ -141,36 +159,77 @@ def _with_column(fieldnames, name):
     return fieldnames
 
 
-def output_path(source, out_dir):
-    """Default output path: ``<name>_jlcpcb.csv`` beside the source (or in out_dir)."""
-    stem, ext = os.path.splitext(os.path.basename(source))
+def _merge_fields(existing, new):
+    """Union two header lists, preserving order and the first occurrence."""
+    return existing + [name for name in new if name not in existing]
+
+
+# Board-side suffixes Fusion appends to placement filenames, and the layer each maps to.
+_SIDES = {"_front": "Top", "_back": "Bottom"}
+
+
+def _strip_side(stem):
+    for side in _SIDES:
+        if stem.lower().endswith(side):
+            return stem[: -len(side)]
+    return stem
+
+
+def _in_dir(filename, source, out_dir):
     directory = out_dir or os.path.dirname(os.path.abspath(source))
-    return os.path.join(directory, f"{stem}{_OUTPUT_SUFFIX}{ext or '.csv'}")
+    return os.path.join(directory, filename)
+
+
+def bom_output_path(source, out_dir):
+    """``bom_<name>_jlcpcb.csv`` beside the source (or in out_dir)."""
+    stem, ext = os.path.splitext(os.path.basename(source))
+    return _in_dir(f"bom_{stem}{_OUTPUT_SUFFIX}{ext or '.csv'}", source, out_dir)
+
+
+def cpl_output_path(source, out_dir):
+    """``<name>_jlcpcb.csv`` with the _front/_back side suffix dropped (combined file)."""
+    stem, ext = os.path.splitext(os.path.basename(source))
+    return _in_dir(f"{_strip_side(stem)}{_OUTPUT_SUFFIX}{ext or '.csv'}", source, out_dir)
 
 
 def layer_for_filename(path):
     """Top for ``*_front.csv``, Bottom for ``*_back.csv``; None if neither."""
-    name = os.path.basename(path).lower()
-    if name.endswith("_front.csv"):
-        return "Top"
-    if name.endswith("_back.csv"):
-        return "Bottom"
+    stem = os.path.splitext(os.path.basename(path))[0].lower()
+    for side, layer in _SIDES.items():
+        if stem.endswith(side):
+            return layer
     return None
 
 
-def resolve_layer(override, cpl_path):
-    """Use an explicit --layer override, else infer from the filename (default Top)."""
-    if override:
-        return override
-    inferred = layer_for_filename(cpl_path)
+def cpl_layer(path):
+    """Layer for a placement file, defaulting to Top (with a warning) if no side suffix."""
+    inferred = layer_for_filename(path)
     if inferred is None:
         print(
-            f"Warning: '{os.path.basename(cpl_path)}' does not end in _front.csv or "
-            f"_back.csv; defaulting Layer to Top. Pass --layer to set it explicitly.",
+            f"Warning: '{os.path.basename(path)}' has no _front/_back suffix; "
+            f"using Layer=Top.",
             file=sys.stderr,
         )
         return "Top"
     return inferred
+
+
+def sibling_cpl(path):
+    """The matching opposite-side placement file beside ``path``, if it exists."""
+    stem, ext = os.path.splitext(os.path.basename(path))
+    base = _strip_side(stem)
+    if base == stem:
+        return None  # no _front/_back suffix, so there is no sibling to pair with
+    present = stem[len(base):].lower()  # "_front" or "_back"
+    other = "_back" if present == "_front" else "_front"
+    candidate = os.path.join(os.path.dirname(path), f"{base}{other}{ext}")
+    return candidate if os.path.exists(candidate) else None
+
+
+def collect_cpl_paths(cpl_path):
+    """The given placement file plus its auto-found opposite-side sibling (if any)."""
+    sibling = sibling_cpl(cpl_path)
+    return [cpl_path, sibling] if sibling else [cpl_path]
 
 
 def require_columns(fieldnames, required, source):
@@ -199,35 +258,43 @@ def _missing_columns_message(missing, fieldnames, source):
 def _parse_args(argv):
     parser = argparse.ArgumentParser(description="Convert Fusion BOM and pick-and-place CSVs for JLCPCB.")
     parser.add_argument("--bom", required=True, help="Path to the Fusion BOM CSV.")
-    parser.add_argument("--cpl", required=True, help="Path to the Fusion pick-and-place (CPL) CSV.")
-    parser.add_argument("--out-dir", default=None, help="Directory for outputs (default: beside each input).")
     parser.add_argument(
-        "--layer",
-        choices=["Top", "Bottom"],
-        default=None,
-        help="Board side for the placements (default: inferred from the _front/_back filename).",
+        "--cpl",
+        required=True,
+        help="Path to a Fusion pick-and-place CSV (_front or _back); the other side is found automatically.",
     )
+    parser.add_argument("--out-dir", default=None, help="Directory for outputs (default: beside each input).")
     return parser.parse_args(argv)
+
+
+def _load_cpls(cpl_arg, columns):
+    """Read the placement file and its sibling into (path, table, layer) tuples."""
+    loaded = []
+    for path in collect_cpl_paths(cpl_arg):
+        table = read_table(path)
+        require_columns(table[0], [columns.cpl_designator], path)
+        loaded.append((path, table, cpl_layer(path)))
+    return loaded
 
 
 def main(argv=None):
     args = _parse_args(argv)
     columns = Columns()
     bom = read_table(args.bom)
-    cpl = read_table(args.cpl)
     require_columns(bom[0], [columns.bom_designators], args.bom)
-    require_columns(cpl[0], [columns.cpl_designator], args.cpl)
 
-    layer = resolve_layer(args.layer, args.cpl)
-    bom_out, cpl_out = Converter(columns).convert(bom, cpl, layer)
+    cpls = _load_cpls(args.cpl, columns)
+    bom_out, cpl_out = Converter(columns).convert(bom, [(table, layer) for _, table, layer in cpls])
 
-    bom_path = output_path(args.bom, args.out_dir)
-    cpl_path = output_path(args.cpl, args.out_dir)
+    bom_path = bom_output_path(args.bom, args.out_dir)
+    cpl_path = cpl_output_path(args.cpl, args.out_dir)
     write_table(bom_path, *bom_out)
     write_table(cpl_path, *cpl_out)
 
     print(f"BOM:             {len(bom_out[1])} parts -> {bom_path}")
     print(f"Pick-and-place:  {len(cpl_out[1])} placements -> {cpl_path}")
+    for path, _, layer in cpls:
+        print(f"    {layer:<6} <- {os.path.basename(path)}")
 
 
 if __name__ == "__main__":
