@@ -1,0 +1,357 @@
+[
+    {
+        "name": "action/major-release",
+        "color": "980bc0",
+        "description": "Release major update",
+        "aliases": []
+    },
+    {
+        "name": "action/minor-release",
+        "color": "980bc0",
+        "description": "Release minor update",
+        "aliases": []
+    },
+    {
+        "name": "action/patch-release",
+        "color": "980bc0",
+        "description": "Release patch update",
+        "aliases": []
+    },
+    {
+        "name": "area/documentation",
+        "color": "d93f0b",
+        "description": "Improvements or additions to documentation",
+        "aliases": [
+            "documentation"
+        ]
+    },
+    {
+        "name": "area/design",
+        "color": "d93f0b",
+        "description": "Architectural decisions",
+        "aliases": [
+            "design"
+        ]
+    },
+    {
+        "name": "area/implement",
+        "color": "d93f0b",
+        "description": "Implementation",
+        "aliases": []
+    },
+    {
+        "name": "area/test",
+        "color": "d93f0b",
+        "description": "Unit and Integration Testing",
+        "aliases": [
+            "test"
+        ]
+    },
+    {
+        "name": "area/ci-cd",
+        "color": "d93f0b",
+        "description": "Continuous Integration - Continuous Deployment",
+        "aliases": [
+            "ci"
+        ]
+    },
+    {
+        "name": "area/diagnostics",
+        "color": "d93f0b",
+        "description": "Missing or poor/low value diagnostics",
+        "aliases": []
+    },
+    {
+        "name": "area/hardware",
+        "color": "d93f0b",
+        "description": "Issue related to device hardware",
+        "aliases": []
+    },
+    {
+        "name": "area/performance",
+        "color": "d93f0b",
+        "description": "Issue related to performance",
+        "aliases": []
+    },
+    {
+        "name": "area/tooling",
+        "color": "d93f0b",
+        "description": "Development tools and infrastructure",
+        "aliases": []
+    },
+    {
+        "name": "type/defect",
+        "color": "fbca04",
+        "description": "Something isn't working",
+        "aliases": [
+            "defect",
+            "bug"
+        ]
+    },
+    {
+        "name": "type/vulnerability",
+        "color": "fbca04", 
+        "description": "There is a security risk",
+        "aliases": []
+    },
+    {
+        "name": "type/breaking",
+        "color": "fbca04",
+        "description": "This breaks something",
+        "aliases": []
+    },
+    {
+        "name": "type/maintenance",
+        "color": "fbca04",
+        "description": "This needs maintenance",
+        "aliases": []
+    },
+    {
+        "name": "type/proposal",
+        "color": "fbca04",
+        "description": "Proposal for a new improvement or feature request",
+        "aliases": [
+            "enhancement"
+        ]
+    },
+    {
+        "name": "type/feature-request",
+        "color": "fbca04",
+        "description": "Something is not implemented yet",
+        "aliases": [
+            "feature request"
+        ]
+    },
+    {
+        "name": "type/question",
+        "color": "fbca04",
+        "description": "Something is questionable",
+        "aliases": [
+            "question"
+        ]
+    },
+    {
+        "name": "type/discussion",
+        "color": "fbca04",
+        "description": "Let's talk it out",
+        "aliases": []
+    },
+    {
+        "name": "type/polish",
+        "color": "fbca04",
+        "description": "Something needs to look better",
+        "aliases": [
+            "polish"
+        ]
+    },
+    {
+        "name": "type/tech-debt",
+        "color": "fbca04",
+        "description": "Technical debt. Not critical but shouldn't accumulate too much",
+        "aliases": []
+    },
+    {
+        "name": "priority/low",
+        "description": "We can get to this later",
+        "color": "136519",
+        "aliases": []
+    },
+    {
+        "name": "priority/medium",
+        "description": "Let's get to this soon",
+        "color": "136519",
+        "aliases": []
+    },
+    {
+        "name": "priority/high",
+        "description": "Its important to resolve this promptly",
+        "color": "136519",
+        "aliases": []
+    },
+    {
+        "name": "priority/critical",
+        "description": "Drop everything to urgently resolve this",
+        "color": "136519",
+        "aliases": []
+    },
+    {
+        "name": "size/xs",
+        "description": "Size extra-small",
+        "color": "0d3a2d",
+        "aliases": []
+    },
+    {
+        "name": "size/s",
+        "description": "Size small",
+        "color": "0d3a2d",
+        "aliases": []
+    },
+    {
+        "name": "size/m",
+        "description": "Size medium",
+        "color": "0d3a2d",
+        "aliases": []
+    },
+    {
+        "name": "size/l",
+        "description": "Size large",
+        "color": "0d3a2d",
+        "aliases": []
+    },
+    {
+        "name": "size/xl",
+        "description": "Size extra-large",
+        "color": "0d3a2d",
+        "aliases": []
+    },
+    {
+        "name": "status/help-wanted",
+        "color": "bfd4f2",
+        "description": "Attention is requested from others",
+        "aliases": [
+            "help wanted"
+        ]
+    },
+    {
+        "name": "status/wontfix",
+        "color": "bfd4f2",
+        "description": "This will not be worked on",
+        "aliases": [
+            "wontfix"
+        ]
+    },
+    {
+        "name": "status/duplicate",
+        "color": "bfd4f2",
+        "description": "This issue or pull request already exists",
+        "aliases": [
+            "duplicate"
+        ]
+    },
+    {
+        "name": "status/blocked",
+        "color": "bfd4f2",
+        "description": "Another issue is blocking this",
+        "aliases": []
+    },
+    {
+        "name": "status/backlog",
+        "color": "bfd4f2",
+        "description": "This is not scheduled to be worked on just yet",
+        "aliases": []
+    },
+    {
+        "name": "status/selected",
+        "color": "bfd4f2",
+        "description": "This is selected for development",
+        "aliases": []
+    },
+    {
+        "name": "status/in-progress",
+        "color": "bfd4f2",
+        "description": "This is currently being worked on",
+        "aliases": []
+    },
+    {
+        "name": "status/needs-test",
+        "color": "bfd4f2",
+        "description": "This needs to be validated and/or verified",
+        "aliases": []
+    },
+    {
+        "name": "status/cannot-reproduce",
+        "color": "bfd4f2",
+        "description": "This issue cannot be reproduced",
+        "aliases": []
+    },
+    {
+        "name": "status/needs-details",
+        "color": "bfd4f2",
+        "description": "More information is needed to address this",
+        "aliases": []
+    },
+    {
+        "name": "status/new",
+        "color": "bfd4f2",
+        "description": "New issue that has yet to be accepted",
+        "aliases": []
+    },
+    {
+        "name": "status/needs-details",
+        "color": "bfd4f2",
+        "description": "More information is needed to address this",
+        "aliases": []
+    },
+    {
+        "name": "release",
+        "color": "1d76db",
+        "description": "Ship it!",
+        "aliases": []
+    },
+    {
+        "name": "tracking",
+        "color": "1d76db",
+        "description": "Issues that tracks a bigger set of logically cohesive modifications",
+        "aliases": []
+    },
+    {
+        "name": "release-notes",
+        "color": "1d76db",
+        "description": "A change that should be mentioned in release notes",
+        "aliases": []
+    },
+    {
+        "name": "found-by/ci",
+        "color": "ed70ed",
+        "description": "An issue found by a CI method or check",
+        "aliases": []
+    },
+    {
+        "name": "found-by/code-inspection",
+        "color": "ed70ed",
+        "description": "An issue found by code inspection",
+        "aliases": []
+    },
+    {
+        "name": "found-by/design-review",
+        "color": "ed70ed",
+        "description": "An issue found by a design review",
+        "aliases": []
+    },
+    {
+        "name": "found-by/hil-test",
+        "color": "ed70ed",
+        "description": "An issue found by hardware-in-the-loop testing",
+        "aliases": []
+    },
+    {
+        "name": "found-by/sdfmea",
+        "color": "ed70ed",
+        "description": "An issue found by a software design failure modes and effects analysis",
+        "aliases": []
+    },
+    {
+        "name": "found-by/sw-test",
+        "color": "ed70ed",
+        "description": "An issue found by off-target software testing",
+        "aliases": []
+    },
+    {
+        "name": "found-by/system-test",
+        "color": "ed70ed",
+        "description": "An issue found by system testing",
+        "aliases": []
+    },
+    {
+        "name": "found-by/validation-test",
+        "color": "ed70ed",
+        "description": "An issue found by validation testing",
+        "aliases": []
+    },
+    {
+        "name": "found-by/user",
+        "color": "ed70ed",
+        "description": "An issue found by an end-user",
+        "aliases": []
+    }
+]

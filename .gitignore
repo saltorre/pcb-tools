@@ -216,3 +216,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Board BOM/pick-and-place CSVs are private customer data. They live in boards/,
+# which is ignored wholesale except for its .gitkeep marker. The /*.csv rule is a
+# safety net so a stray export dropped in the repo root is never committed either.
+boards/*
+!boards/.gitkeep
+/*.csv

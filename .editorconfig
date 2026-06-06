@@ -1,0 +1,19 @@
+# The EditorConfig tool is used to maintain consistent coding styles for
+# multiple developers working on the same project across various editors, IDEs,
+# and environments (such as PCs and virtual runtime environments like Docker containers).
+
+# Go to https://EditorConfig.org to see if your IDE natively supports the tool
+# or requires an extension.
+
+# top-most EditorConfig file.
+root = true
+
+# Unix-style newlines with a newline ending every file.
+[*]
+end_of_line = lf
+insert_final_newline = true
+
+# 4 space indentation.
+[*.py]
+indent_style = space
+indent_size = 4
