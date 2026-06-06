@@ -216,3 +216,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local board exports and generated supplier files. Board BOM/pick-and-place CSVs
+# are private customer data; keep them and their converted *_jlcpcb.csv outputs out
+# of this public repo. Drop example files in the repo root and they stay untracked.
+/*.csv
