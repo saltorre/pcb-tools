@@ -9,6 +9,14 @@ Two pieces:
 | Look up LCSC part numbers | Resolve manufacturer part numbers (MPNs) to JLCPCB/LCSC codes and fill the BOM's `LCSC_PART_NUMBER` column | `jlcpcb-lookup` Claude skill |
 | Convert BOM + pick-and-place | Drop unpopulated parts, rename columns, propagate LCSC codes to the placement file | `convert.py` script |
 
+## Where to put your files
+
+Drop your Fusion exports in the repo's [`boards/`](../../boards) folder and run
+the tool against them; the `_jlcpcb.csv` outputs land there too, beside each
+input. Everything in `boards/` is git-ignored — board CSVs are private customer
+data and never get committed. (For one folder per board, make a subfolder like
+`boards/PCB1001M1/`.)
+
 ## Expected Fusion columns
 
 The defaults assume these headers (override them in
@@ -36,7 +44,7 @@ named differently.
 In Claude Code, point the skill at your exported BOM:
 
 ```text
-Use jlcpcb-lookup on ~/Desktop/myboard_bom.csv
+Use jlcpcb-lookup on boards/myboard_bom.csv
 ```
 
 It reads each part's `MPN`, looks the part up on LCSC, and writes the `Cxxxxx`
@@ -49,8 +57,8 @@ Run this **before** the conversion step so the placement file inherits the codes
 
 ```bash
 python -m tools.jlcpcb.convert \
-  --bom ~/Desktop/myboard_bom.csv \
-  --cpl ~/Desktop/myboard_pnp.csv
+  --bom boards/myboard_bom.csv \
+  --cpl boards/myboard_pnp_front.csv
 ```
 
 By default each output is written next to its input as `<name>_jlcpcb.csv`; pass
