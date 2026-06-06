@@ -30,8 +30,7 @@ full workflow, expected columns, and the LCSC lookup step.
 
 ## Working files
 
-Put your board exports in [`boards/`](boards/) — it's git-ignored, since BOM and
-placement files are private customer data and this is a public repo.
+Put your board exports in [`boards/`](boards/) — it's git-ignored.
 
 ## Development
 
@@ -46,3 +45,9 @@ dev dependency.
 ## License
 
 [GPL-3.0-or-later](LICENSE).
+
+## Acknowledgments
+
+This repository was made with ❤️ by
+[Sal Torre](https://github.com/saltorre)
+for [Salvatorre, LLC](https://www.salvatorre.com/).
