@@ -99,17 +99,13 @@ class Converter:
         return self._bom_fields(fieldnames), kept
 
     def _convert_cpls(self, cpls, index):
-        fields, rows = [], []
+        rows = []
         for cpl, layer in cpls:
-            part_fields, part_rows = self._convert_cpl(cpl, index, layer)
-            fields = _merge_fields(fields, part_fields)
-            rows += part_rows
-        return fields, rows
+            rows += self._cpl_rows(cpl, index, layer)
+        return self.columns.cpl_output_fields(), rows
 
-    def _convert_cpl(self, cpl, index, layer):
-        fieldnames, rows = cpl
-        kept = [self._build_cpl_row(row, index, layer) for row in rows if self._keep_cpl(row, index)]
-        return self._cpl_fields(fieldnames), kept
+    def _cpl_rows(self, cpl, index, layer):
+        return [self._build_cpl_row(row, index, layer) for row in cpl[1] if self._keep_cpl(row, index)]
 
     def _is_populated(self, row):
         return not _is_dnp_value(row.get(self.columns.populate, ""))
@@ -124,24 +120,15 @@ class Converter:
         return out
 
     def _build_cpl_row(self, row, index, layer):
-        out = self._rename_cpl(row)
+        # Emit only JLCPCB's placement columns (plus LCSC), in cpl_output_fields order.
+        out = {out_col: row.get(in_col, "") for in_col, out_col in self.columns.cpl_renames().items()}
         out[self.columns.layer] = layer
         out[self.columns.lcsc] = index.lcsc_for(self._cpl_ref(row))
         return out
 
-    def _rename_cpl(self, row):
-        renames = self.columns.cpl_renames()
-        return {renames.get(key, key): value for key, value in row.items()}
-
     def _bom_fields(self, fieldnames):
         renamed = [self._renamed(name) for name in fieldnames]
         return _with_column(renamed, self.columns.lcsc)
-
-    def _cpl_fields(self, fieldnames):
-        renames = self.columns.cpl_renames()
-        out = [renames.get(name, name) for name in fieldnames]
-        _with_column(out, self.columns.layer)
-        return _with_column(out, self.columns.lcsc)
 
     def _renamed(self, name):
         # "Parts" -> "Designator"; every other column keeps its name.
@@ -157,11 +144,6 @@ def _with_column(fieldnames, name):
     if name not in fieldnames:
         fieldnames.append(name)
     return fieldnames
-
-
-def _merge_fields(existing, new):
-    """Union two header lists, preserving order and the first occurrence."""
-    return existing + [name for name in new if name not in existing]
 
 
 # Board-side suffixes Fusion appends to placement filenames, and the layer each maps to.

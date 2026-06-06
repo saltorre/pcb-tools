@@ -49,11 +49,11 @@ def test_bom_drops_unpopulated_parts():
     assert len(rows) == 2
 
 
-def test_cpl_renames_columns_to_jlcpcb_names():
+def test_cpl_output_is_jlcpcb_columns_in_exact_order():
     (fields, _) = Converter().convert(_bom(), _cpls())[1]
-    assert "Designator" in fields and "Name" not in fields
-    assert "Mid X" in fields and "Mid Y" in fields
-    assert "Rotation" in fields and "Angle" not in fields
+    assert fields == ["Designator", "Mid X", "Mid Y", "Layer", "Rotation", "LCSC_PART_NUMBER"]
+    # Fusion's extra placement columns are dropped from the JLCPCB output.
+    assert "Value" not in fields and "Package" not in fields
 
 
 def test_cpl_drops_unpopulated_designators():

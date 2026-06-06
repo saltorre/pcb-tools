@@ -74,9 +74,12 @@ What it does:
 - Removes every part whose `POPULATE` is `0` from **both** files.
 - BOM: renames `Parts` → `Designator`, ensures a `LCSC_PART_NUMBER` column exists,
   and keeps the other columns (including `MPN`) untouched.
-- Pick-and-place: renames `Name`/`X`/`Y`/`Angle` → JLCPCB's
-  `Designator`/`Mid X`/`Mid Y`/`Rotation`, adds a `Layer` column (see above), and
-  fills `LCSC_PART_NUMBER` per designator from the BOM.
+- Pick-and-place: emits exactly JLCPCB's placement columns, in order —
+  `Designator, Mid X, Mid Y, Layer, Rotation` (mapped from Fusion's
+  `Name`/`X`/`Y`/`Angle` + the side-derived `Layer`) — with `LCSC_PART_NUMBER`
+  appended (filled per designator from the BOM). Fusion's `Value`/`Package`
+  columns are dropped. JLCPCB ignores the trailing `LCSC_PART_NUMBER`; it's there
+  for readability.
 
 Upload the two `_jlcpcb.csv` files to JLCPCB's assembly order page. If JLCPCB's
 column auto-detection doesn't pick up `LCSC_PART_NUMBER`, map it to "LCSC Part #"
