@@ -1,6 +1,0 @@
-# Local board files: Fusion BOM / pick-and-place exports and their converted
-# *_jlcpcb.csv outputs. These are private customer data and must never be
-# committed to this public repo. Ignore everything here except this file, which
-# keeps the folder present in the repo so the workflow has a home.
-*
-!.gitignore
